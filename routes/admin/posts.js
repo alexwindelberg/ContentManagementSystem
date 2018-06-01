@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../../models/Post');
+const fs = require('fs');
+const { isEmpty, uploadDir } = require('../../helper/upload-helper');
 
 
 // overwrite of the default layout being used
@@ -36,35 +38,50 @@ router.get('/create', (req, res) =>{
 
 router.post('/create', (req, res) =>{
 
-  console.log(req.files);
+  let fileName = '';
 
-  // let allowComments = true;
-  //
-  // if(req.body.allowComments){
-  //
-  //   allowComments = true;
-  // }else{
-  //   allowComments = false;
-  // }
-  //
-  // const newPost = new Post({
-  //     title         : req.body.title,
-  //     status        : req.body.status,
-  //     allowComments : allowComments,
-  //     body          : req.body.body
-  // });
-  //
-  //
-  // newPost.save().then(savedPost=>{
-  //
-  //     console.log(savedPost);
-  //     res.redirect('/admin/posts');
-  //
-  // }).catch(error => {
-  //
-  //   console.log('coud not save post');
-  //
-  // });
+
+  if(!isEmpty(req.files)){
+    let file = req.files.file;
+        fileName = Date.now() + '-' + file.name;
+
+    file.mv('./public/uploads/' + fileName, (err)=>{
+
+      if(err) throw err;
+
+    });
+
+  }
+
+  let allowComments = true;
+
+  if(req.body.allowComments){
+
+    allowComments = true;
+  }else{
+    allowComments = false;
+  }
+
+  const newPost = new Post({
+      title         : req.body.title,
+      status        : req.body.status,
+      allowComments : allowComments,
+      body          : req.body.body,
+      file          : fileName
+
+  });
+
+
+  newPost.save().then(savedPost=>{
+
+      console.log(savedPost);
+      res.redirect('/admin/posts');
+
+  }).catch(error => {
+
+    console.log('coud not save post');
+
+  });
 
 });
 
@@ -118,10 +135,14 @@ router.put('/edit/:id', (req, res) =>{
 
 router.delete('/:id', (req, res) =>{
 
-  Post.remove({_id: req.params.id})
-      .then(result=>{
+  Post.findOne({_id: req.params.id})
+      .then(post =>{
 
-        res.redirect('/admin/posts');
+        fs.unlink(uploadDir + post.file, (err) => {
+            post.remove();
+            res.redirect('/admin/posts');
+        });
+
 
       })
 
