@@ -39,7 +39,7 @@ router.get('/create', (req, res) =>{
 router.post('/create', (req, res) =>{
 
   let fileName = '';
-
+  let errors = [];
 
   if(!isEmpty(req.files)){
     let file = req.files.file;
@@ -77,11 +77,12 @@ router.post('/create', (req, res) =>{
       console.log(savedPost);
       res.redirect('/admin/posts');
 
-  }).catch(error => {
+  }).catch(validator => {
 
-    console.log('coud not save post');
+    res.render('admin/posts/create', {errors : validator.errors});
 
   });
+
 
 });
 
@@ -137,7 +138,8 @@ router.delete('/:id', (req, res) =>{
 
   Post.findOne({_id: req.params.id})
       .then(post =>{
-
+        // post up here now contains all the info from the database
+        // so we can ask it to remove the record with post.remove()
         fs.unlink(uploadDir + post.file, (err) => {
             post.remove();
             res.redirect('/admin/posts');
